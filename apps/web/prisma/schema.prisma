@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  name            String
+  passwordHash    String   @map("password_hash")
+  avatarUrl       String?  @map("avatar_url")
+  organizationId  String   @map("organization_id")
+  role            UserRole @default(member)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdSheets   Sheet[]      @relation("SheetCreator")
+  createdRows     Row[]        @relation("RowCreator")
+  modifiedRows    Row[]        @relation("RowModifier")
+  sheetUsers      SheetUser[]
+  auditLogs       AuditLog[]
+  triggers        Trigger[]
+  fileUploads     FileUpload[]
+
+  @@map("users")
+}
+
+model Organization {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  customDomain String?  @map("custom_domain")
+  branding     Json     @default("{}")
+  plan         OrgPlan  @default(free)
+  apiKeyHash   String?  @map("api_key_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  users        User[]
+  sheets       Sheet[]
+  fileUploads  FileUpload[]
+
+  @@map("organizations")
+}
+
+model Sheet {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String
+  description    String?
+  icon           String?
+  createdById    String   @map("created_by")
+  isArchived     Boolean  @default(false) @map("is_archived")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation("SheetCreator", fields: [createdById], references: [id])
+  fields         Field[]
+  rows           Row[]
+  sheetUsers     SheetUser[]
+  auditLogs      AuditLog[]
+  triggers       Trigger[]
+  webhooks       Webhook[]
+
+  @@map("sheets")
+}
+
+model Field {
+  id        String    @id @default(uuid())
+  sheetId   String    @map("sheet_id")
+  key       String
+  title     String
+  type      FieldType
+  position  Int       @default(0)
+  settings  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  sheet     Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  @@unique([sheetId, key])
+  @@map("fields")
+}
+
+model Row {
+  id               String   @id @default(uuid())
+  sheetId          String   @map("sheet_id")
+  barcode          String?
+  data             Json     @default("{}")
+  createdById      String   @map("created_by")
+  lastModifiedById String   @map("last_modified_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  sheet            Sheet      @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  createdBy        User       @relation("RowCreator", fields: [createdById], references: [id])
+  lastModifiedBy   User       @relation("RowModifier", fields: [lastModifiedById], references: [id])
+  auditLogs        AuditLog[]
+
+  @@index([sheetId, barcode])
+  @@map("rows")
+}
+
+model SheetUser {
+  id          String   @id @default(uuid())
+  sheetId     String   @map("sheet_id")
+  userId      String   @map("user_id")
+  permissions Json     @default("{\"canUpdate\":true,\"canDelete\":false,\"canExport\":true,\"canAdmin\":false}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sheet       Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sheetId, userId])
+  @@map("sheet_users")
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  sheetId    String      @map("sheet_id")
+  rowId      String?     @map("row_id")
+  userId     String      @map("user_id")
+  action     AuditAction
+  changes    Json        @default("{}")
+  deviceInfo Json?       @map("device_info")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  sheet      Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  row        Row?  @relation(fields: [rowId], references: [id], onDelete: SetNull)
+  user       User  @relation(fields: [userId], references: [id])
+
+  @@index([sheetId, createdAt])
+  @@map("audit_logs")
+}
+
+model Trigger {
+  id          String   @id @default(uuid())
+  sheetId     String   @map("sheet_id")
+  name        String
+  conditions  Json     @default("[]")
+  actions     Json     @default("[]")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdById String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sheet       Sheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  createdBy   User  @relation(fields: [createdById], references: [id])
+
+  @@map("triggers")
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  sheetId   String   @map("sheet_id")
+  url       String
+  secret    String?
+  events    String[]
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sheet     Sheet        @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  logs      WebhookLog[]
+
+  @@map("webhooks")
+}
+
+model WebhookLog {
+  id             String   @id @default(uuid())
+  webhookId      String   @map("webhook_id")
+  event          String
+  requestBody    Json     @map("request_body")
+  responseStatus Int?     @map("response_status")
+  responseBody   String?  @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  webhook        Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_logs")
+}
+
+model FileUpload {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  uploadedById   String   @map("uploaded_by")
+  filename       String
+  mimeType       String   @map("mime_type")
+  sizeBytes      Int      @map("size_bytes")
+  storageKey     String   @map("storage_key")
+  url            String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy     User         @relation(fields: [uploadedById], references: [id])
+
+  @@map("file_uploads")
+}
+
+enum UserRole {
+  owner
+  admin
+  member
+}
+
+enum OrgPlan {
+  free
+  starter
+  business
+  enterprise
+}
+
+enum FieldType {
+  text
+  number
+  number_auto_increase
+  number_auto_decrease
+  email
+  currency
+  url
+  barcode
+  date
+  date_automatic
+  date_time
+  date_time_automatic
+  time
+  drop_down
+  true_false
+  photo
+  attachment
+  signature
+  gps_location
+  gps_location_automatic
+  formula
+  unique_id
+  created_by
+  created_date
+  last_modified_by
+  last_modified_date
+}
+
+enum AuditAction {
+  row_created
+  row_updated
+  row_deleted
+  field_added
+  field_updated
+  field_deleted
+  sheet_cleared
+  sheet_deleted
+  import
+  export
+}

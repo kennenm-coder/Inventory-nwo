@@ -1,0 +1,23 @@
+{
+  "name": "scanvault",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:web": "cd apps/web && npm run dev",
+    "db:migrate": "cd apps/web && npx prisma migrate dev",
+    "db:push": "cd apps/web && npx prisma db push",
+    "db:seed": "cd apps/web && npx prisma db seed",
+    "db:studio": "cd apps/web && npx prisma studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

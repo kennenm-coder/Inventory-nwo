@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "ScanVault",
+    "slug": "scanvault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "scanvault",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#2563eb"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.scanvault.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ScanVault needs camera access to scan barcodes",
+        "NSLocationWhenInUseUsageDescription": "ScanVault needs location access to record GPS coordinates for inventory items"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb"
+      },
+      "package": "com.scanvault.app",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ScanVault needs camera access to scan barcodes"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ScanVault needs location to record GPS coordinates"
+        }
+      ]
+    ]
+  }
+}
