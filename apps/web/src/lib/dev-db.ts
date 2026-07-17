@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 const g = globalThis as unknown as {
   __devTables?: Record<string, Map<string, Record<string, unknown>>>;
-  __devSeeded?: boolean;
+  __devSeedPromise?: Promise<void>;
 };
 
 if (!g.__devTables) {
@@ -24,9 +24,7 @@ if (!g.__devTables) {
 
 const tables = g.__devTables;
 
-async function seed() {
-  if (g.__devSeeded) return;
-  g.__devSeeded = true;
+async function doSeed() {
 
   const orgId = randomUUID();
   const userId = randomUUID();
@@ -85,6 +83,13 @@ async function seed() {
       createdAt: new Date(), updatedAt: new Date(),
     });
   }
+}
+
+function seed(): Promise<void> {
+  if (!g.__devSeedPromise) {
+    g.__devSeedPromise = doSeed();
+  }
+  return g.__devSeedPromise;
 }
 
 function matchesWhere(record: Record<string, unknown>, where: Record<string, unknown>): boolean {
