@@ -24,29 +24,29 @@ if (!g.__devTables) {
 
 const tables = g.__devTables;
 
-async function doSeed() {
+const DEMO_ORG_ID = "00000000-0000-4000-a000-000000000001";
+const DEMO_USER_ID = "00000000-0000-4000-a000-000000000002";
+const DEMO_SHEET_ID = "00000000-0000-4000-a000-000000000003";
 
-  const orgId = randomUUID();
-  const userId = randomUUID();
-  const sheetId = randomUUID();
+async function doSeed() {
   const passwordHash = await bcrypt.hash("password123", 4);
 
-  tables.organizations.set(orgId, {
-    id: orgId, name: "Demo Organization", slug: "demo-org",
+  tables.organizations.set(DEMO_ORG_ID, {
+    id: DEMO_ORG_ID, name: "Demo Organization", slug: "demo-org",
     customDomain: null, branding: {}, plan: "business",
     apiKeyHash: null, createdAt: new Date(), updatedAt: new Date(),
   });
 
-  tables.users.set(userId, {
-    id: userId, email: "demo@scanvault.app", name: "Demo User",
-    passwordHash, avatarUrl: null, organizationId: orgId,
+  tables.users.set(DEMO_USER_ID, {
+    id: DEMO_USER_ID, email: "demo@scanvault.app", name: "Demo User",
+    passwordHash, avatarUrl: null, organizationId: DEMO_ORG_ID,
     role: "owner", createdAt: new Date(), updatedAt: new Date(),
   });
 
-  tables.sheets.set(sheetId, {
-    id: sheetId, organizationId: orgId, name: "Inventory",
+  tables.sheets.set(DEMO_SHEET_ID, {
+    id: DEMO_SHEET_ID, organizationId: DEMO_ORG_ID, name: "Inventory",
     description: "Default inventory tracking sheet", icon: "📦",
-    createdById: userId, isArchived: false,
+    createdById: DEMO_USER_ID, isArchived: false,
     createdAt: new Date(), updatedAt: new Date(),
   });
 
@@ -62,9 +62,9 @@ async function doSeed() {
     { key: "notes", title: "Notes", type: "text", position: 8, settings: {} },
   ];
 
-  for (const f of fieldDefs) {
-    const id = randomUUID();
-    tables.fields.set(id, { id, sheetId, ...f, createdAt: new Date(), updatedAt: new Date() });
+  for (let i = 0; i < fieldDefs.length; i++) {
+    const id = `00000000-0000-4000-b000-00000000010${i}`;
+    tables.fields.set(id, { id, sheetId: DEMO_SHEET_ID, ...fieldDefs[i], createdAt: new Date(), updatedAt: new Date() });
   }
 
   const sampleRows = [
@@ -75,11 +75,11 @@ async function doSeed() {
     { barcode: "ABC-005", data: { item_name: "Coffee Beans (1kg)", quantity: 12, price: 18.50, location: "Kitchen", category: "Food & Beverage", in_stock: true } },
   ];
 
-  for (const r of sampleRows) {
-    const id = randomUUID();
+  for (let i = 0; i < sampleRows.length; i++) {
+    const id = `00000000-0000-4000-c000-00000000020${i}`;
     tables.rows.set(id, {
-      id, sheetId, barcode: r.barcode, data: r.data,
-      createdById: userId, lastModifiedById: userId,
+      id, sheetId: DEMO_SHEET_ID, barcode: sampleRows[i].barcode, data: sampleRows[i].data,
+      createdById: DEMO_USER_ID, lastModifiedById: DEMO_USER_ID,
       createdAt: new Date(), updatedAt: new Date(),
     });
   }
